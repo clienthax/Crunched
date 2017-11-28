@@ -1,7 +1,8 @@
 # Crunched
 A Crunchyroll downloader with full subtitle and season support.
-Building
+
+### Building
 gradlew fatJar
 
-Usage
+### Usage
 java -jar crunched.jar -email crunchyrollemail -pass password -page http://crunchyroll.com/#######
