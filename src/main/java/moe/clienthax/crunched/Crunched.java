@@ -187,8 +187,16 @@ public class Crunched {
 
             System.out.println("Downloading "+animeName+" S"+episodeInfo.season+" ep"+episodeInfo.episode_number);
 
-            String fileNameWithoutSuffix = animeName+" - s"+ String.format("%02d", episodeInfo.season)+"e"+String.format("%02d", episodeInfo.episode_number)+" - [CrunchyRoll]";
-
+            String fileNameWithoutSuffix;
+            //Stupid name corner case 4.5
+            if(episodeInfo.episode_number.contains(".")) {
+                int endIndex = episodeInfo.episode_number.indexOf(".");
+                String part1 = episodeInfo.episode_number.substring(0, endIndex);
+                String part2 = episodeInfo.episode_number.substring(endIndex+1);
+                fileNameWithoutSuffix = animeName + " - s" + String.format("%02d", episodeInfo.season) + "e" + String.format("%02d", Integer.parseInt(part1))+"."+part2 + " - [CrunchyRoll]";
+            } else {
+                fileNameWithoutSuffix = animeName + " - s" + String.format("%02d", episodeInfo.season) + "e" + String.format("%02d", Integer.parseInt(episodeInfo.episode_number)) + " - [CrunchyRoll]";
+            }
             String streamUrl = getHighestQualityVideoStream(episodeInfo.media_id);
             boolean skipped = !downloadStreamToMkv(folder, fileNameWithoutSuffix, streamUrl);
             if(skipped) {
@@ -244,7 +252,7 @@ public class Crunched {
     Need to build up a map of seasons(from collection id), episodes, and media ids
      */
     private LinkedHashMap<Integer, EpisodeInfo> buildEpisodeMap(String seriesId) {
-        String seriesJsonUrl = "http://api.crunchyroll.com/list_media.0.json?session_id="+session+"&media_type=anime&series_id="+seriesId;
+        String seriesJsonUrl = "http://api.crunchyroll.com/list_media.0.json?session_id="+session+"&media_type=anime&series_id="+seriesId+"&limit=1000";
         //System.out.println(seriesJsonUrl);
         //has a list of data for each ep, 0 indexed
         //get season from collection ids listed to figure out mappings
@@ -261,8 +269,12 @@ public class Crunched {
                 try {
                     int media_id = Integer.parseInt((String) epObj.get("media_id"));
                     int series_id = Integer.parseInt((String) epObj.get("series_id"));
-                    int episode_number = Integer.parseInt((String) epObj.get("episode_number"));
+                    String episode_number = (String) epObj.get("episode_number");
                     int collection_id = Integer.parseInt((String) epObj.get("collection_id"));
+
+                    //Skip trailers
+                    if(episode_number.isEmpty())
+                        continue;
 
                     EpisodeInfo episodeInfo = new EpisodeInfo(media_id, series_id, collection_id, episode_number);
                     if (!collectionToSeason.containsKey(collection_id)) {
@@ -379,13 +391,29 @@ public class Crunched {
         return "";
     }
 
+    /**
+     * This method is going to get very hacky... very quickly.
+     * TODO use the api search functionality
+     * @param seriesUrl
+     * @return
+     */
     private String getMediaIdFromSeriesPage(String seriesUrl) {
         try {
             String seriesPageString = IOUtils.toString(new URL(seriesUrl), Charset.defaultCharset());
             String toHunt = "mediaId\":\"";
             int mediaIdIndex = seriesPageString.indexOf(toHunt) + toHunt.length();
             String substring = seriesPageString.substring(mediaIdIndex);
-            return substring.substring(0, substring.indexOf("\""));
+            String attempt = substring.substring(0, substring.indexOf("\"")).replace("SRZ.", "");
+            try {
+                Integer.parseInt(attempt);
+            } catch (NumberFormatException e) {
+                seriesPageString = IOUtils.toString(new URL(seriesUrl), Charset.defaultCharset());
+                toHunt = "<div class=\"show-actions\" group_id=\"";
+                mediaIdIndex = seriesPageString.indexOf(toHunt) + toHunt.length();
+                substring = seriesPageString.substring(mediaIdIndex);
+                attempt = substring.substring(0, substring.indexOf("\"")).replace("SRZ.", "");
+            }
+            return attempt;
         } catch (Exception e) {
             System.out.println("Couldn't find media ID on series page "+seriesUrl);
             System.out.println("Is this page in the correct format? eg, http://www.crunchyroll.com/rwby");
