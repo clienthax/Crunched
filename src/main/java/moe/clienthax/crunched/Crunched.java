@@ -45,9 +45,13 @@ public class Crunched {
     private String animeName = "";
     private final JSONParser parser = new JSONParser();
 
+    private String tempSuffix = "_nosub.mkv.tmp";
+
     private String ffmpegPath = "ffmpeg";
     private String ffprobePath = "ffprobe";
     private String mkvmergePath = "mkvmerge";
+
+    private boolean titleInFilename = false;
 
     private org.apache.commons.cli.CommandLine cmd = null;
 
@@ -58,9 +62,9 @@ public class Crunched {
 
     //TODO config file
     //TODO allow cred saving
-    //TODO check for missing exes
     //TODO Proxy support for getting the session id
     //TODO mkvmerge, set audio lang to match locale
+    //TODO film support?
 
     //TODO retry a few times if ffmpeg dies die to a url error or something dumb ?
 
@@ -74,6 +78,7 @@ public class Crunched {
         options.addOption("ffmpeg", true, "Path to ffmpeg");
         options.addOption("ffprobe", true, "Path to ffprobe");
         options.addOption("mkvmerge", true, "Path to mkvmerge");
+        options.addOption("addtitle", false, "Will add the episode title to the filename");
 
         CommandLineParser parser = new DefaultParser();
         try {
@@ -87,6 +92,7 @@ public class Crunched {
         email = cmd.getOptionValue("email");
         password = cmd.getOptionValue("pass");
         seriesPage = cmd.getOptionValue("page");
+        titleInFilename = cmd.hasOption("addtitle");
 
     }
 
@@ -197,8 +203,14 @@ public class Crunched {
             } else {
                 fileNameWithoutSuffix = animeName + " - s" + String.format("%02d", episodeInfo.season) + "e" + String.format("%02d", Integer.parseInt(episodeInfo.episode_number)) + " - [CrunchyRoll]";
             }
+
+            //Add title into filename if requested
+            if(titleInFilename) {
+                fileNameWithoutSuffix = fileNameWithoutSuffix.replace(" - [CrunchyRoll]", "- "+episodeInfo.title+" - [CrunchyRoll]");
+            }
+
             String streamUrl = getHighestQualityVideoStream(episodeInfo.media_id);
-            boolean skipped = !downloadStreamToMkv(folder, fileNameWithoutSuffix, streamUrl);
+            boolean skipped = !downloadStreamToMkv(folder, fileNameWithoutSuffix, streamUrl, episodeInfo.title);
             if(skipped) {
                 System.out.println("skipping as already exists");
                 continue;
@@ -212,7 +224,7 @@ public class Crunched {
                 CommandLine cmd = new CommandLine(mkvmergePath);
                 cmd.addArgument("-o");
                 cmd.addArgument(new File(folder, fileNameWithoutSuffix + ".mkv").getAbsolutePath());
-                cmd.addArgument(new File(folder, fileNameWithoutSuffix + "_nosub.mkv").getAbsolutePath());
+                cmd.addArgument(new File(folder, fileNameWithoutSuffix + tempSuffix).getAbsolutePath());
 
                 for (SubtitleInfo subtitle : subtitles) {
                     cmd.addArgument("--language");
@@ -237,7 +249,7 @@ public class Crunched {
                 for (SubtitleInfo subtitle : subtitles) {
                     new File(folder, subtitle.id + ".ass").delete();
                 }
-                new File(folder, fileNameWithoutSuffix + "_nosub.mkv").delete();
+                new File(folder, fileNameWithoutSuffix + tempSuffix).delete();
             } catch (Exception e) {
                 e.printStackTrace();
                 System.out.println("An error occured while running mkvmerge");
@@ -271,12 +283,13 @@ public class Crunched {
                     int series_id = Integer.parseInt((String) epObj.get("series_id"));
                     String episode_number = (String) epObj.get("episode_number");
                     int collection_id = Integer.parseInt((String) epObj.get("collection_id"));
+                    String episodeName = (String) epObj.get("name");
 
                     //Skip trailers
                     if(episode_number.isEmpty())
                         continue;
 
-                    EpisodeInfo episodeInfo = new EpisodeInfo(media_id, series_id, collection_id, episode_number);
+                    EpisodeInfo episodeInfo = new EpisodeInfo(media_id, series_id, collection_id, episode_number, episodeName);
                     if (!collectionToSeason.containsKey(collection_id)) {
                         //Get season id from api
                         String collectionJsonUrl = "http://api.crunchyroll.com/info.0.json?session_id=" + session + "&media_type=anime&collection_id=" + collection_id;
@@ -301,7 +314,7 @@ public class Crunched {
         return episodes;
     }
 
-    private boolean downloadStreamToMkv(File folder, String fileNameWithoutSuffix, String streamUrl) {
+    private boolean downloadStreamToMkv(File folder, String fileNameWithoutSuffix, String streamUrl, String title) {
 
         try {
             FFmpeg ffmpeg = new FFmpeg(ffmpegPath);
@@ -312,11 +325,12 @@ public class Crunched {
             if (mkvFile.exists())
                 return false;
 
-            mkvFile = new File(folder, fileNameWithoutSuffix + "_nosub.mkv");
+            mkvFile = new File(folder, fileNameWithoutSuffix + tempSuffix);
 
             FFmpegBuilder fFmpegBuilder = new FFmpegBuilder()
                     .setInput(streamUrl)
-                    .addOutput(mkvFile.getAbsolutePath())
+                    .addOutput(mkvFile.getAbsolutePath()).addMetaTag("title", title)
+                    .setFormat("matroska")
                     .setVideoCodec("copy")
                     .done();
 

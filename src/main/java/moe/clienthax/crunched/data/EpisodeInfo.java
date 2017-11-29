@@ -8,14 +8,16 @@ public class EpisodeInfo {
     private final int series_id;
     private final int collection_id;
     public final String episode_number;//Some episodes have dumb names like 4.5 :)
+    public final String title;
 
     public int season = 0;
 
-    public EpisodeInfo(int media_id, int series_id, int collection_id, String episode_number) {
+    public EpisodeInfo(int media_id, int series_id, int collection_id, String episode_number, String title) {
         this.media_id = media_id;
         this.series_id = series_id;
         this.collection_id = collection_id;
         this.episode_number = episode_number;
+        this.title = title;
     }
 
 
