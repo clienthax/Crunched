@@ -1,5 +1,6 @@
 package moe.clienthax.crunched;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.w3c.dom.Document;
 import org.xml.sax.InputSource;
 
@@ -47,6 +48,18 @@ public class Utils {
 
     public static boolean isWindows() {
         return System.getProperty("os.name").toLowerCase().contains("windows");
+    }
+
+    public static String sanitizeName( String name ) {
+        if( null == name ) {
+            return "";
+        }
+
+        if( SystemUtils.IS_OS_LINUX ) {
+            return name.replaceAll( "/+", "" ).trim();
+        }
+
+        return name.replaceAll( "[\u0001-\u001f<>:\"/\\\\|?*\u007f]+", "" ).trim();
     }
 
 }

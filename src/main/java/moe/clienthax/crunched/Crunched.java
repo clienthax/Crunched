@@ -208,6 +208,8 @@ public class Crunched {
             if(titleInFilename) {
                 fileNameWithoutSuffix = fileNameWithoutSuffix.replace(" - [CrunchyRoll]", "- "+episodeInfo.title+" - [CrunchyRoll]");
             }
+            //Filter nasty chars
+            fileNameWithoutSuffix = Utils.sanitizeName(fileNameWithoutSuffix);
 
             String streamUrl = getHighestQualityVideoStream(episodeInfo.media_id);
             boolean skipped = !downloadStreamToMkv(folder, fileNameWithoutSuffix, streamUrl, episodeInfo.title);
