@@ -23,7 +23,7 @@ import org.json.simple.parser.JSONParser;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.net.URL;
+import java.net.*;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -62,7 +62,6 @@ public class Crunched {
 
     //TODO config file
     //TODO allow cred saving
-    //TODO Proxy support for getting the session id
     //TODO mkvmerge, set audio lang to match locale
     //TODO film support?
 
@@ -70,15 +69,24 @@ public class Crunched {
 
     private void parseArgs(String[] args) {
         HelpFormatter helpFormatter = new HelpFormatter();
+        helpFormatter.setOptionComparator(null);//keep insert order
 
         Options options = new Options();
+
+        //Account options
         options.addRequiredOption("email", "email", true, "email");
         options.addRequiredOption("pass", "pass", true, "password");
+        //Page option
         options.addRequiredOption("page", "page", true, "Crunchyroll series page");
+        //Path options
         options.addOption("ffmpeg", true, "Path to ffmpeg");
         options.addOption("ffprobe", true, "Path to ffprobe");
         options.addOption("mkvmerge", true, "Path to mkvmerge");
-        options.addOption("addtitle", false, "Will add the episode title to the filename");
+        //Misc
+        options.addOption("addtitle", false, "Add the episode title to the filename");
+        //Proxy
+        options.addOption("socksproxy", true, "Socks proxy to use for login and api requests ONLY (This will not be used for downloading as only the api is geolocked), eg 127.0.0.1:9999");
+        options.addOption("httpproxy", true, "Http proxy to use for login and api requests ONLY (This will not be used for downloading as only the api is geolocked), eg 127.0.0.1:9999");
 
         CommandLineParser parser = new DefaultParser();
         try {
@@ -94,8 +102,52 @@ public class Crunched {
         seriesPage = cmd.getOptionValue("page");
         titleInFilename = cmd.hasOption("addtitle");
 
-    }
+        //Parse socks proxy options
+        if(cmd.hasOption("socksproxy") && cmd.hasOption("httpproxy")) {
+            System.out.println("Please use one proxy at a time");
+            System.exit(-2);
+        }
 
+        if(cmd.hasOption("socksproxy")) {
+            String socksproxy = cmd.getOptionValue("socksproxy");
+            if(!socksproxy.contains(":")) {
+                System.out.println("You must specify a port when using a socks proxy");
+                System.exit(-2);
+            }
+
+            try {
+                URI uri = new URI("my://" + socksproxy); // may throw URISyntaxException
+                System.getProperties().put( "proxySet", "true" );
+                System.getProperties().put( "socksProxyHost", uri.getHost());
+                System.getProperties().put( "socksProxyPort", ""+uri.getPort());//Yes this needs to be a string..
+            } catch (Exception e) {
+                System.out.println("Error while parsing proxy string");
+                System.exit(-2);
+            }
+
+        }
+
+        //Parse http proxy options
+        if(cmd.hasOption("httpproxy")) {
+            String socksproxy = cmd.getOptionValue("httpproxy");
+            if(!socksproxy.contains(":")) {
+                System.out.println("You must specify a port when using a http proxy");
+                System.exit(-2);
+            }
+
+            try {
+                URI uri = new URI("my://" + socksproxy); // may throw URISyntaxException
+                System.getProperties().put( "proxySet", "true" );
+                System.getProperties().put( "http.proxyHost", uri.getHost());
+                System.getProperties().put( "http.proxyPort", ""+uri.getPort());//Yes this needs to be a string..
+            } catch (Exception e) {
+                System.out.println("Error while parsing proxy string");
+                System.exit(-2);
+            }
+        }
+
+
+    }
 
     private Crunched(String[] args) {
         parseArgs(args);
@@ -279,6 +331,12 @@ public class Crunched {
             String seriesJson = IOUtils.toString(new URL(seriesJsonUrl), Charset.defaultCharset());
             JSONObject seriesJsonObj = (JSONObject) parser.parse(seriesJson);
             JSONArray episodeListObj = (JSONArray) seriesJsonObj.get("data");
+
+            if(episodeListObj == null) {
+                System.out.println("No episodes found, you may need to use a proxy");
+                return episodes;
+            }
+
             for (JSONObject epObj : (ArrayList<JSONObject>) episodeListObj) {
                 try {
                     int media_id = Integer.parseInt((String) epObj.get("media_id"));
@@ -382,6 +440,10 @@ public class Crunched {
                 mediaInfoUrl = "https://api.crunchyroll.com/info.0.json?session_id=" + session + "&media_id=" + mediaid + "&locale=" + audioLang + "&fields=media.media_id,media.stream_data,media.premium_available,media.free_available,media.series_id,media.collection_id,media.media_type,%20media.series_name,media.name,media.duration,media.name,media.description,media.episode_number,media.playhead,media.fwide_url,media.screenshot_image,media.url,media.bif_url,media.collection_name,series.genres\n";
                 mediaInfoJson = IOUtils.toString(new URL(mediaInfoUrl), Charset.defaultCharset());
                 mediaInfoJsonObj = (JSONObject) parser.parse(mediaInfoJson);
+                String hardsubLang = (String) ((JSONObject) ((JSONObject) mediaInfoJsonObj.get("data")).get("stream_data")).get("hardsub_lang");
+                if(!hardsubLang.isEmpty() && !audioLang.equalsIgnoreCase(hardsubLang)) {
+                    System.out.println("Warning, no clean video track, proceeding with hardsubbed stream");
+                }
             }
 
             //System.out.println(mediaInfoUrl);
