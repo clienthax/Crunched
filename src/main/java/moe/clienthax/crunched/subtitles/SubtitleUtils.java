@@ -49,7 +49,7 @@ public class SubtitleUtils {
         }
         return null;
     }
-.
+
     /***
      * Used for converting crunchyrolls title strings to valid lang codes
      */
