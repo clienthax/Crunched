@@ -1,5 +1,6 @@
 package moe.clienthax.crunched.subtitles;
 
+import com.google.common.base.Utf8;
 import org.apache.commons.io.IOUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -13,6 +14,7 @@ import java.util.List;
 
 import static moe.clienthax.crunched.Utils.loadXMLFromString;
 import static moe.clienthax.crunched.subtitles.SubtitleDecrypter.decryptAndConvertSubtitle;
+import static org.apache.commons.lang3.CharEncoding.UTF_8;
 
 /**
  * Created by clienthax on 27/11/2017.
@@ -47,7 +49,7 @@ public class SubtitleUtils {
         }
         return null;
     }
-
+.
     /***
      * Used for converting crunchyrolls title strings to valid lang codes
      */
@@ -75,12 +77,15 @@ public class SubtitleUtils {
             case "[Français (France)] Français (France)":
                 return "fra";
 
+            case "[Русский] Русский":
+                return "rus";
+
             default:
-                System.out.println("Unknown subtitle code "+title);
+                System.out.println("Unknown subtitle code " + title);
                 break;
 
-        }
-        return "";
+           }
+           return "";
     }
 
 

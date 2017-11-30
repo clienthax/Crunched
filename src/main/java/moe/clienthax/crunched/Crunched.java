@@ -45,7 +45,7 @@ public class Crunched {
     private String animeName = "";
     private final JSONParser parser = new JSONParser();
 
-    private String tempSuffix = "_nosub.mkv.tmp";
+    private final String tempSuffix = "_nosub.mkv.tmp";
 
     private String ffmpegPath = "ffmpeg";
     private String ffprobePath = "ffprobe";
@@ -281,8 +281,12 @@ public class Crunched {
                 cmd.addArgument(new File(folder, fileNameWithoutSuffix + tempSuffix).getAbsolutePath());
 
                 for (SubtitleInfo subtitle : subtitles) {
-                    cmd.addArgument("--language");
-                    cmd.addArgument("0:" + getSubtitleCodeFromTitle(subtitle.title));
+                    String subtitleLang = getSubtitleCodeFromTitle(subtitle.title);
+                    //Only add languages when we have the right var for them
+                    if(!subtitleLang.isEmpty()) {
+                        cmd.addArgument("--language");
+                        cmd.addArgument("0:" + getSubtitleCodeFromTitle(subtitle.title));
+                    }
                     cmd.addArgument(new File(folder, subtitle.id + ".ass").getAbsolutePath());
                 }
 

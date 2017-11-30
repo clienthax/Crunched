@@ -7,8 +7,6 @@ import org.xml.sax.InputSource;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.*;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.zip.Inflater;
 import java.util.zip.InflaterOutputStream;
 

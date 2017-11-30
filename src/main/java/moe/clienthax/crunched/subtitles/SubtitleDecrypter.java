@@ -3,25 +3,17 @@ package moe.clienthax.crunched.subtitles;
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.crypto.BufferedBlockCipher;
 import org.bouncycastle.crypto.CipherParameters;
-import org.bouncycastle.crypto.PBEParametersGenerator;
-import org.bouncycastle.crypto.digests.SHA256Digest;
 import org.bouncycastle.crypto.engines.AESEngine;
-import org.bouncycastle.crypto.generators.PKCS12ParametersGenerator;
 import org.bouncycastle.crypto.modes.CBCBlockCipher;
-import org.bouncycastle.crypto.paddings.PKCS7Padding;
-import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.ParametersWithIV;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import javax.xml.bind.DatatypeConverter;
 import java.io.*;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.util.Base64;
 
@@ -36,14 +28,13 @@ class SubtitleDecrypter {
 
 
     //Decrypt with BC to get past the jce limited bits on lower java versions... ugh
-    public static byte[] lwDecrypt(byte[] iv, byte[] key, byte[] encrypted) throws Exception {
+    private static byte[] lwDecrypt(byte[] iv, byte[] key, byte[] encrypted) throws Exception {
 
         BufferedBlockCipher aes = new BufferedBlockCipher(new CBCBlockCipher(new AESEngine()));
         CipherParameters ivAndKey = new ParametersWithIV(new KeyParameter(key), iv);
         aes.init(false, ivAndKey);
 
-        byte[] decryptedBytes = cipherData(aes, encrypted);
-        return decryptedBytes;
+        return cipherData(aes, encrypted);
 
     }
 
@@ -73,7 +64,7 @@ class SubtitleDecrypter {
             byte[] decryptionKey = new byte[32];
             System.arraycopy(decryptionKeyShort, 0, decryptionKey, 0, decryptionKeyShort.length);//Pad the key to 32 Bytes
 
-            String subtitleXML = IOUtils.toString(new URL(subtitle.link));
+            String subtitleXML = IOUtils.toString(new URL(subtitle.link), Charset.defaultCharset());
             Document doc = loadXMLFromString(subtitleXML);
             doc.getDocumentElement().normalize();
 
