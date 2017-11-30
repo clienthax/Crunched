@@ -1,0 +1,23 @@
+language: java
+
+jdk:
+  - oraclejdk8
+
+os:
+  - linux
+
+branches:
+  only:
+    - master
+
+cache:
+  directories:
+  - $HOME/.gradle
+
+before_script:
+  - git fetch
+  - git merge origin/master
+
+script:
+  - chmod +x ./gradlew
+  - ./gradlew fatJar
