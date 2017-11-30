@@ -13,11 +13,9 @@ before_script:
 - git fetch
 - git merge origin/master
 script:
-- chmod +x ./gradlew
 - "./gradlew fatJar"
-- ls build/libs/*
-- ls build/libs
 deploy:
+  skip_cleanup: true
   provider: releases
   api_key:
     secure: UwI365OoC8EpkYAPJTWcb5/1jVeXpuAvMYtTtt/Sf+WP3T/ZLrvJmORKRudy+rM8kja16FS2szuAKOSBYqyiqD4t9BKaf/d6gUCg4t57y9UGOvRnOMrcNgSIUYf+Q2EhwprmAHtyF8YEc2dix4lQ/SuCVvTOAXryCkCsSqWSMj1s/A/SFUMFq211NeWb2m3SG4fXpi4CofIp6rmXhjenQwofhBVYkUuq1Mds+dfjlFa0ncLwDX0Z1BlmHmsYqIetpmRYddHIFp8nMoXAA7mu821sxpwSGTlwu0f4ns3YqJbcaoxh/qdqpDCTqQ0AFdZDa1F3o4CVxhtO6aXydBOt1Oq31bBj6QUvSQqnSf9SFbq3H5c/enMwn96z93e68neUBzh9HbIMkrZ8oHpXx8kYPuucAPoqll25B0xIbCRzLeoLlKrgb29crmFwdK6UPeQFZiejUH6INfOsHOxr0GPwa+0MaqYCBpzqoDg2g0qaOBepF0KG7Qgj+nX00ZIRZTKjWPYea2k+CKsXmYy/hMHcSB2Wir+Qfh+L5X2JOJ9JgYy6RT5LoMSw5QcF7am1BwIwlQjQKdDePfLrlZ9DIB+7H/FdThHYD/ebnWECHybhNvqwFLFdP0TSLCf5haNl0epay2y1vY19DnQbxZLBLlivTbdo4u16JoQ7lvbkdXYvl+Q=
