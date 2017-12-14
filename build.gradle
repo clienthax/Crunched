@@ -45,4 +45,6 @@ dependencies {
     compile group: 'commons-cli', name: 'commons-cli', version: '1.4'
     compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.58'
     compile group: 'org.slf4j', name: 'slf4j-nop', version: '1.8.0-beta0'
+    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5.4'
+
 }

@@ -17,6 +17,11 @@ import org.apache.commons.exec.*;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.text.WordUtils;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -37,6 +42,7 @@ import static moe.clienthax.crunched.subtitles.SubtitleUtils.getSubtitles;
 @SuppressWarnings("unchecked")
 public class Crunched {
 
+    private HttpClient rpcSession;
     private String session;
     private String email = "";
     private String password = "";
@@ -165,7 +171,10 @@ public class Crunched {
             session = (String) ((JSONObject) sessionJsonObj.get("data")).get("session_id");
             System.out.println("session = " + session);
 
-            //Do login.
+            //Do login to crunchyroll rpc api.
+            rpcSession = setupHttpClient();
+
+            //Do login to crunchyroll api.
             String loginUrl = "https://api.crunchyroll.com/login.0.json?session_id=" + session + "&account=" + email + "&password=" + password + "&fields=user.username,user.premium,user.email&locale=" + locale;
             String loginJson = IOUtils.toString(new URL(loginUrl), Charset.defaultCharset());
             JSONObject loginJsonObj = (JSONObject) parser.parse(loginJson);
@@ -202,6 +211,15 @@ public class Crunched {
             System.exit(-2);
         }
 
+    }
+
+    private org.apache.http.client.HttpClient setupHttpClient() throws Exception {
+        BasicCookieStore cookieStore = new BasicCookieStore();
+        org.apache.http.client.HttpClient client = HttpClientBuilder.create().setDefaultCookieStore(cookieStore).build();
+
+        HttpGet request = new HttpGet("https://www.crunchyroll.com/?a=formhandler&formname=RpcApiUser_Login&name="+email+"&password="+password);
+        client.execute(request);//TODO verify login
+        return client;
     }
 
     private void checkForPrograms() {
@@ -270,7 +288,7 @@ public class Crunched {
                 continue;
             }
 
-            List<SubtitleInfo> subtitles = getSubtitles(folder, episodeInfo.media_id);
+            List<SubtitleInfo> subtitles = getSubtitles(rpcSession, folder, episodeInfo.media_id);
 
             //merge subtitles into mkv
 
